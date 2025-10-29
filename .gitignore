@@ -1,0 +1,28 @@
+# Arquivos de Sistema
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Segredos (NUNCA FAÇA COMMIT DISSO)
+.env
+.env.*
+*.env
+
+# Dependências (NUNCA FAÇA COMMIT DISSO)
+node_modules/
+/client/node_modules
+/server/node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build do React
+/client/build
+
+# Build do NestJS
+/server/dist
