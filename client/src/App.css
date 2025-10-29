@@ -64,3 +64,18 @@
 .logout-btn:hover {
   background-color: #c82333;
 }
+
+/* Estilos para botões de navegação de Admin */
+.App-nav button.admin-nav-btn {
+  background-color: #ffc107; /* Amarelo "Warning" */
+  color: #212529;
+}
+
+.App-nav button.admin-nav-btn:hover {
+  background-color: #e0a800;
+}
+
+.App-nav button.admin-nav-btn.active {
+  background-color: #d39e00;
+  color: #212529;
+}

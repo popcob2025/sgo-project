@@ -2,16 +2,21 @@ import React from 'react';
 import './App.css';
 import { SocketConnector } from './store/components/SocketConnector';
 import { DispatchDashboard } from './store/components/DispatchDashboard';
-import { TriageForm } from 'components/TriageForm';
-// 1. Importar a store de Auth e o LoginForm
-import { useAuthStore } from 'store/auth.store';
-import { LoginForm } from 'components/LoginForm';
+import { TriageForm } from './components/TriageForm';
+import { useAuthStore } from './store/auth.store';
+import { LoginForm } from './components/LoginForm';
+import { AdminNatures } from './components/admin/AdminNatures';
+import { AdminResources } from './components/admin/AdminResources';
+// 1. Importar o novo componente Admin
+import { AdminProtocols } from './components/admin/AdminProtocols';
 
 enum AppView {
   TRIAGE,
   DISPATCH,
-  // ADMIN_NATURES, (Futuro)
-  // ADMIN_RESOURCES, (Futuro)
+  ADMIN_NATURES,
+  ADMIN_RESOURCES,
+  // 2. Adicionar a nova View
+  ADMIN_PROTOCOLS,
 }
 
 function App() {
@@ -19,21 +24,14 @@ function App() {
     AppView.TRIAGE,
   );
 
-  // 2. Obter estado e ações da auth.store
   const { isAuthenticated, user, logout } = useAuthStore();
 
-  // 3. Renderizar o LoginForm se não estiver autenticado
   if (!isAuthenticated) {
     return <LoginForm />;
   }
 
-  // 4. Se estiver autenticado, renderizar a app principal
   return (
     <div className="App">
-      {/* O SocketConnector agora pode (opcionalmente) ser movido para dentro
-          da verificação de 'isAuthenticated' se a conexão WS também
-          precisar de um token (o que é uma boa prática). 
-          Por enquanto, mantemos aqui. */}
       <SocketConnector />
       
       <header className="App-header">
@@ -47,6 +45,7 @@ function App() {
       </header>
 
       <nav className="App-nav">
+        {/* Botões do Operador */}
         <button
           className={currentView === AppView.TRIAGE ? 'active' : ''}
           onClick={() => setCurrentView(AppView.TRIAGE)}
@@ -59,12 +58,46 @@ function App() {
         >
           Mesa de Despacho
         </button>
-        {/* TODO: Adicionar botões de Admin (visível apenas para SUPERVISOR) */}
+        
+        {/* Botões de Admin (Condicional) */}
+        {(user?.role === 'SUPERVISOR' || user?.role === 'ADMIN') && (
+          <>
+            <button
+              className={`admin-nav-btn ${
+                currentView === AppView.ADMIN_NATURES ? 'active' : ''
+              }`}
+              onClick={() => setCurrentView(AppView.ADMIN_NATURES)}
+            >
+              Admin: Naturezas
+            </button>
+            <button
+              className={`admin-nav-btn ${
+                currentView === AppView.ADMIN_RESOURCES ? 'active' : ''
+              }`}
+              onClick={() => setCurrentView(AppView.ADMIN_RESOURCES)}
+            >
+              Admin: Recursos
+            </button>
+            {/* 3. Adicionar botão para Protocolos */}
+            <button
+              className={`admin-nav-btn ${
+                currentView === AppView.ADMIN_PROTOCOLS ? 'active' : ''
+              }`}
+              onClick={() => setCurrentView(AppView.ADMIN_PROTOCOLS)}
+            >
+              Admin: Protocolos
+            </button>
+          </>
+        )}
       </nav>
 
       <main className="App-container">
         {currentView === AppView.TRIAGE && <TriageForm />}
         {currentView === AppView.DISPATCH && <DispatchDashboard />}
+        {/* 4. Adicionar Renderização do Admin */}
+        {currentView === AppView.ADMIN_NATURES && <AdminNatures />}
+        {currentView === AppView.ADMIN_RESOURCES && <AdminResources />}
+        {currentView === AppView.ADMIN_PROTOCOLS && <AdminProtocols />}
       </main>
     </div>
   );
