@@ -1,23 +1,18 @@
-import {
-  IsEmail,
-  IsEnum,
-  IsNotEmpty,
-  IsString,
-  MinLength,
-} from 'class-validator';
-import { UserRole } from '../../common/enums/user-role.enum';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { UserRole } from 'src/common/enums/user-role.enum';
 
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @IsEmail()
-  email: string;
+  @IsString()
+  @IsNotEmpty()
+  username: string; // <-- ALTERADO DE 'email' (e IsEmail)
 
   @IsString()
-  @MinLength(6)
-  passwordHash: string; // O AuthService irá popular isso com o HASH
+  @IsNotEmpty()
+  passwordHash: string;
 
   @IsEnum(UserRole)
   role: UserRole;

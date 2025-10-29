@@ -1,13 +1,7 @@
 import { UserRole } from '../../common/enums/user-role.enum';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('users') // Nome da tabela no banco
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -16,7 +10,7 @@ export class User {
   name: string;
 
   @Column({ unique: true })
-  email: string;
+  username: string; // <-- ALTERADO DE 'email'
 
   @Column()
   passwordHash: string; // Iremos salvar a senha criptografada (hash)
@@ -24,13 +18,18 @@ export class User {
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.TRIAGE,
+    default: UserRole.OPERATOR, // <-- ALTERADO PARA O NOVO DEFAULT
   })
   role: UserRole;
 
-  @CreateDateColumn()
+  // Timestamps (opcional, mas boa prática)
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
   updatedAt: Date;
 }

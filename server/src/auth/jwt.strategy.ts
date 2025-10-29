@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { UsersService } from '../users/users.service';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -9,23 +9,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'meu-segredo-super-secreto-321',
+      secretOrKey: 'SEU_SEGREDO_JWT', // Lembre-se de trocar por uma variável de ambiente!
     });
   }
 
   /**
    * Validação: O Passport decodifica o JWT e passa o 'payload' para este método.
-   * Nós usamos o ID do payload para buscar o usuário no banco.
    * O que este método retorna é injetado no 'request.user'.
    */
-  async validate(payload: { sub: string; email: string }) {
+  async validate(payload: { sub: string; username: string }) {
+    // <-- ALTERADO
     const user = await this.usersService.findById(payload.sub);
     if (!user) {
-      throw new UnauthorizedException('Token inválido ou usuário não encontrado.');
+      throw new UnauthorizedException('Token inválido.');
     }
-    // Não retornamos a senha hash!
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = user;
-    return result;
+    // Retorna o objeto 'user' que será anexado ao Request
+    return {
+      id: payload.sub,
+      username: payload.username, // <-- ALTERADO
+      role: user.role,
+      name: user.name,
+    };
   }
 }

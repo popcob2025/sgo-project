@@ -12,31 +12,39 @@ export class UsersService {
   ) {}
 
   /**
-   * Encontra um usuário pelo e-mail.
+   * Encontra um usuário pelo username.
    * Usado pelo AuthService para validar o login.
    */
-  async findByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { email } });
+  async findByUsername(username: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { username } }); // <-- ALTERADO
   }
 
   /**
-   * Cria um novo usuário.
+   * Encontra um usuário pelo ID.
+   * Usado pelo JwtStrategy.
+   */
+  async findById(id: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { id } });
+  }
+
+  /**
+   * Cria um novo usuário no banco.
    * Usado pelo AuthService para registrar.
    */
   async create(createUserDto: CreateUserDto): Promise<User> {
     const newUser = new User();
     newUser.name = createUserDto.name;
-    newUser.email = createUserDto.email;
+    newUser.username = createUserDto.username; // <-- ALTERADO
     newUser.passwordHash = createUserDto.passwordHash;
     newUser.role = createUserDto.role;
+
     return this.usersRepository.save(newUser);
   }
 
   /**
-   * Encontra um usuário pelo ID.
-   * Usado pelo JwtStrategy para desserializar o usuário do token.
+   * Busca todos os usuários (exemplo, pode não ser usado)
    */
-  async findById(id: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { id } });
+  async findAll(): Promise<User[]> {
+    return this.usersRepository.find();
   }
 }
