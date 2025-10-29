@@ -13,6 +13,7 @@ import { DispatchModule } from './dispatch/dispatch.module';
 import { ResourcesModule } from './resources/resources.module';
 import { ProtocolsModule } from './protocols/protocols.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { BootstrapService } from './bootstrap/bootstrap.service';
 
 @Module({
   imports: [
@@ -48,6 +49,6 @@ import { AnalyticsModule } from './analytics/analytics.module';
     AnalyticsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, BootstrapService],
 })
 export class AppModule {}
