@@ -1,0 +1,108 @@
+.triage-form-container {
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.triage-col {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-group label {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.form-group textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.suggestions-box {
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 10px;
+  background-color: #fcfcfc;
+  min-height: 100px;
+}
+
+.suggestions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.suggestion-item {
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: #f0f8ff; /* Azul claro */
+}
+
+.suggestion-item.selected {
+  background-color: #d4edda; /* Verde claro */
+  font-weight: bold;
+}
+
+.suggestion-score {
+  font-size: 12px;
+  color: #555;
+  float: right;
+}
+
+.triage-submit-btn {
+  padding: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.triage-submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.loading-text,
+.error-text {
+  font-style: italic;
+  color: #888;
+  padding: 10px;
+  text-align: center;
+}
+
+.error-text {
+  color: #dc3545;
+}

@@ -1,6 +1,6 @@
 import React from 'react';
-import { useDispatchStore } from '../store/dispatch.store';
-import { Incident } from '../types';
+import { useDispatchStore } from 'store/dispatch.store';
+
 
 interface Props {
   selectedIncidentId: string | null;
@@ -12,7 +12,7 @@ export const IncidentQueueKanban: React.FC<Props> = ({
   onSelectIncident,
 }) => {
   // Lê a fila de ocorrências diretamente do estado global (Zustand)
-  const queue = useDispatchStore((state) => state.incidentsQueue);
+  const queue = useDispatchStore((state) => state.incidentQueue);
 
   return (
     <div className="kanban-container">

@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { useDispatchStore } from '../store/dispatch.store';
-import { Resource } from '../types';
+import { useDispatchStore } from 'store/dispatch.store';
+
 
 interface Props {
   selectedResourceId: string | null;
@@ -17,7 +17,6 @@ export const ResourceMap: React.FC<Props> = ({
 }) => {
   // Lê as viaturas e ocorrências do estado global
   const resources = useDispatchStore((state) => state.availableResources);
-  const incidents = useDispatchStore((state) => state.incidentsQueue);
 
   return (
     <div className="map-container">

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { IncidentQueueKanban } from './IncidentQueueKanban';
 import { ResourceMap } from './ResourceMap';
-import { useDispatchStore } from '../store/dispatch.store';
+import { useDispatchStore } from '../dispatch.store';
 import './DispatchDashboard.css'; // (Criaremos este CSS)
 
 export const DispatchDashboard = () => {

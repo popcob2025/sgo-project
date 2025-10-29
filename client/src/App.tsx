@@ -1,104 +1,73 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import './App.css';
-import { SocketConnector } from './components/SocketConnector';
-import { DispatchDashboard } from './components/DispatchDashboard';
-import { TriageForm } from './components/TriageForm';
-import { LoginForm } from './components/LoginForm';
-import { useAuthStore } from './store/auth.store';
-import { UserRole } from './types';
+import { SocketConnector } from './store/components/SocketConnector';
+import { DispatchDashboard } from './store/components/DispatchDashboard';
+import { TriageForm } from 'components/TriageForm';
+// 1. Importar a store de Auth e o LoginForm
+import { useAuthStore } from 'store/auth.store';
+import { LoginForm } from 'components/LoginForm';
 
-// Enum para controlar as "páginas"
 enum AppView {
   TRIAGE,
   DISPATCH,
-  SUPERVISOR,
+  // ADMIN_NATURES, (Futuro)
+  // ADMIN_RESOURCES, (Futuro)
 }
 
 function App() {
-  // Pega o estado de autenticação da store (Zustand)
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const user = useAuthStore((state) => state.user);
-  const checkAuth = useAuthStore((state) => state.checkAuth);
-  const logout = useAuthStore((state) => state.logout);
+  const [currentView, setCurrentView] = React.useState<AppView>(
+    AppView.TRIAGE,
+  );
 
-  // Estado para controlar a visão atual
-  // O padrão agora é baseado na função (role) do usuário
-  const getDefaultView = () => {
-    switch (user?.role) {
-      case UserRole.TRIAGE:
-        return AppView.TRIAGE;
-      case UserRole.DISPATCH:
-        return AppView.DISPATCH;
-      case UserRole.SUPERVISOR:
-        return AppView.DISPATCH; // Supervisor vê o despacho por padrão
-      default:
-        return AppView.DISPATCH;
-    }
-  };
-  const [currentView, setCurrentView] = React.useState(getDefaultView());
+  // 2. Obter estado e ações da auth.store
+  const { isAuthenticated, user, logout } = useAuthStore();
 
-  // 1. Verifica se o usuário já tem um token no localStorage ao carregar
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  // 2. Atualiza a view padrão quando o usuário loga
-  useEffect(() => {
-    if (isAuthenticated) {
-      setCurrentView(getDefaultView());
-    }
-  }, [isAuthenticated, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
-
-  // Se não estiver logado, mostra a tela de login
+  // 3. Renderizar o LoginForm se não estiver autenticado
   if (!isAuthenticated) {
     return <LoginForm />;
   }
 
-  // Se estiver logado, mostra o app principal
+  // 4. Se estiver autenticado, renderizar a app principal
   return (
-    <>
-      {/* Gerencia a conexão WebSocket (só conecta se logado) */}
+    <div className="App">
+      {/* O SocketConnector agora pode (opcionalmente) ser movido para dentro
+          da verificação de 'isAuthenticated' se a conexão WS também
+          precisar de um token (o que é uma boa prática). 
+          Por enquanto, mantemos aqui. */}
       <SocketConnector />
       
-      {/* Barra de Navegação Principal */}
-      <nav>
-        <strong>SGO</strong> | 
-        
-        {/* Permite que Supervisor e Triagem acessem o form */}
-        {(user?.role === UserRole.TRIAGE || user?.role === UserRole.SUPERVISOR) && (
-          <button onClick={() => setCurrentView(AppView.TRIAGE)}>
-            Triagem
+      <header className="App-header">
+        <h1>SGO - Sistema de Gestão de Ocorrências</h1>
+        <div className="user-info">
+          <span>Olá, {user?.name} ({user?.role})</span>
+          <button onClick={logout} className="logout-btn">
+            Sair
           </button>
-        )}
-        
-        {/* Permite que Supervisor e Despachante acessem o dashboard */}
-        {(user?.role === UserRole.DISPATCH || user?.role === UserRole.SUPERVISOR) && (
-          <button onClick={() => setCurrentView(AppView.DISPATCH)}>
-            Despacho
-          </button>
-        )}
+        </div>
+      </header>
 
-        {/* TODO: Adicionar botão para Admin (Passo 2.5) */}
-        {/* <button>Admin</button> */}
-
-        <span style={{ marginLeft: 'auto', fontSize: '14px', marginRight: '15px' }}>
-          Olá, {user?.email} ({user?.role})
-        </span>
-        <button className="logout" onClick={logout}>
-          Sair
+      <nav className="App-nav">
+        <button
+          className={currentView === AppView.TRIAGE ? 'active' : ''}
+          onClick={() => setCurrentView(AppView.TRIAGE)}
+        >
+          Triagem (Nova Ocorrência)
         </button>
+        <button
+          className={currentView === AppView.DISPATCH ? 'active' : ''}
+          onClick={() => setCurrentView(AppView.DISPATCH)}
+        >
+          Mesa de Despacho
+        </button>
+        {/* TODO: Adicionar botões de Admin (visível apenas para SUPERVISOR) */}
       </nav>
 
-      {/* Renderiza a interface principal selecionada */}
-      <div className="main-content">
+      <main className="App-container">
         {currentView === AppView.TRIAGE && <TriageForm />}
         {currentView === AppView.DISPATCH && <DispatchDashboard />}
-        {/* TODO: Adicionar render do Admin (Passo 2.5) */}
-      </div>
-    </>
+      </main>
+    </div>
   );
 }
 
 export default App;
-
