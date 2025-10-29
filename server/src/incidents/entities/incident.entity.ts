@@ -11,7 +11,7 @@ import { IncidentStatus } from '../../common/enums/incident-status.enum';
 import { PriorityLevel } from '../../common/enums/priority-level.enum';
 import { Protocol } from '../../protocols/entities/protocol.entity';
 import { User } from '../../users/entities/user.entity';
-import { Point } from 'geojson'; // Tipo para PostGIS
+import type { Point } from 'geojson'; // Tipo para PostGIS
 
 @Entity('incidents')
 export class Incident {
@@ -28,7 +28,7 @@ export class Incident {
   address: string;
 
   @Column({ type: 'text', nullable: true })
-  addressNotes: string; // "Ponto de referência"
+  addressNotes: string | null; // "Ponto de referência"
 
   // Coluna de Geografia (PostGIS)
   @Index({ spatial: true })

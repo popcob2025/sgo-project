@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Protocol } from './entities/protocol.entity';
 import { IncidentNature } from '../incidents/entities/incident-nature.entity';
 import { Repository } from 'typeorm';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import * as pdfParser from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 
 @Injectable()
 export class ProtocolsService {
@@ -13,12 +17,16 @@ export class ProtocolsService {
   constructor(
     @InjectRepository(Protocol)
     private protocolRepository: Repository<Protocol>,
-
     @InjectRepository(IncidentNature)
     private incidentNatureRepository: Repository<IncidentNature>,
   ) {
-    // Inicializa o cliente Gemini com a chave do .env
-    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        'GEMINI_API_KEY is not set in the environment variables.',
+      );
+    }
+    this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
   /**
@@ -40,45 +48,55 @@ export class ProtocolsService {
     }
 
     // 2. Ler o texto do PDF
-    const data = await pdfParser(file.buffer);
-    const pdfText = data.text;
+    const parser = new PDFParse({ data: file.buffer });
+    try {
+      const data = await parser.getText();
+      const pdfText = data.text;
 
-    // 3. Analisar o texto com a IA
-    const structuredData = await this.analyzeTextWithGemini(pdfText);
+      // 3. Analisar o texto com a IA
+      const structuredData = await this.analyzeTextWithGemini(pdfText);
 
-    // 4. Salvar ou Atualizar o Protocolo no DB
-    // Verifica se já existe um protocolo para esta natureza
-    let protocol = await this.protocolRepository.findOne({
-      where: { incidentNature: { id: natureId } },
-    });
+      // 4. Salvar ou Atualizar o Protocolo no DB
+      // Verifica se já existe um protocolo para esta natureza
+      let protocol = await this.protocolRepository.findOne({
+        where: { incidentNature: { id: natureId } },
+      });
 
-    if (!protocol) {
-      protocol = this.protocolRepository.create(); // Cria um novo se não existir
-      protocol.incidentNature = incidentNature;
+      if (!protocol) {
+        protocol = this.protocolRepository.create(); // Cria um novo se não existir
+        protocol.incidentNature = incidentNature;
+      }
+
+      // Atualiza o protocolo com os dados da IA
+      protocol.questions = structuredData.questions;
+      protocol.instructions = structuredData.instructions;
+      protocol.keywords = structuredData.keywords;
+      protocol.originalPdfPath = file.originalname; // Guarda o nome do arquivo
+
+      return this.protocolRepository.save(protocol);
+    } catch (error) {
+      console.error('Error processing PDF:', error);
+      throw new InternalServerErrorException('Failed to process PDF file.');
+    } finally {
+      await parser.destroy();
     }
-
-    // Atualiza o protocolo com os dados da IA
-    protocol.questions = structuredData.questions;
-    protocol.instructions = structuredData.instructions;
-    protocol.keywords = structuredData.keywords;
-    protocol.originalPdfPath = file.originalname; // Guarda o nome do arquivo
-
-    return this.protocolRepository.save(protocol);
   }
 
   /**
    * Método privado para chamar a API do Gemini e estruturar o texto.
    */
-  private async analyzeTextWithGemini(
-    text: string,
-  ): Promise<{ questions: string[]; instructions: string; keywords: string[] }> {
+  private async analyzeTextWithGemini(text: string): Promise<{
+    questions: string[];
+    instructions: string;
+    keywords: string[];
+  }> {
     try {
-      const model = this.genAI.getGenerativeModel('gemini-pro');
-      
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+
       const prompt = `
         Você é um assistente especializado em padronização de protocolos de emergência (Bombeiros, SAMU).
         Analise o texto do protocolo de emergência a seguir e extraia as informações requisitadas.
-        Seu retorno DEVE ser APENAS um objeto JSON, sem nenhum outro texto ou formatação (como \`\`\`json).
+        Seu retorno DEVE ser APENAS um objeto JSON, sem nenhum outro texto ou formatação (como 'json'). 
 
         O JSON deve ter a seguinte estrutura:
         {
@@ -99,17 +117,25 @@ export class ProtocolsService {
       `;
 
       const result = await model.generateContent(prompt);
-      const response = await result.response;
+      const response = result.response;
       const jsonResponse = response.text();
 
       // Limpa a resposta para garantir que é um JSON válido
-      const cleanedJson = jsonResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-      
-      return JSON.parse(cleanedJson);
+      const cleanedJson = jsonResponse
+        .replace(/'''json/g, '')
+        .replace(/'''/g, '')
+        .trim();
 
+      return JSON.parse(cleanedJson) as {
+        questions: string[];
+        instructions: string;
+        keywords: string[];
+      };
     } catch (error) {
       console.error('Erro na API do Gemini:', error);
-      throw new Error('Falha ao analisar o texto do protocolo com a IA.');
+      throw new InternalServerErrorException(
+        'Falha ao analisar o texto do protocolo com a IA.',
+      );
     }
   }
 }

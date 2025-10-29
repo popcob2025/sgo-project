@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not } from 'typeorm';
+import { Repository } from 'typeorm';
 import { IncidentNature } from './entities/incident-nature.entity';
 import { CreateIncidentNatureDto } from './dto/create-incident-nature.dto';
 import { UpdateIncidentNatureDto } from './dto/update-incident-nature.dto';
@@ -8,7 +8,8 @@ import { Protocol } from '../protocols/entities/protocol.entity';
 import { Incident } from './entities/incident.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateIncidentDto } from './dto/create-incident.dto';
-import { Point } from 'geojson';
+import { ScoredProtocol } from './dto/scored-protocol.dto';
+import type { Point } from 'geojson';
 import { IncidentStatus } from '../common/enums/incident-status.enum';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -62,19 +63,17 @@ export class IncidentsService {
       coordinates: [dto.longitude, dto.latitude], // Formato (Longitude, Latitude)
     };
 
-    // 3. Criar a nova entidade
-    const newIncident = this.incidentRepository.create({
-      callerName: dto.callerName,
-      callerPhone: dto.callerPhone,
-      address: dto.address,
-      addressNotes: dto.addressNotes,
-      narrative: dto.narrative,
-      priority: dto.priority,
-      status: IncidentStatus.AWAITING_DISPATCH, // Status inicial
-      coordinates: coordinates,
-      protocol: protocol,
-      triageOperator: operator,
-    });
+    const newIncident = new Incident();
+    newIncident.callerName = dto.callerName;
+    newIncident.callerPhone = dto.callerPhone;
+    newIncident.address = dto.address;
+    newIncident.addressNotes = dto.addressNotes ?? null;
+    newIncident.narrative = dto.narrative;
+    newIncident.priority = dto.priority;
+    newIncident.status = IncidentStatus.AWAITING_DISPATCH;
+    newIncident.coordinates = coordinates;
+    newIncident.protocol = protocol;
+    newIncident.triageOperator = operator;
 
     // 4. Salvar no banco
     const savedIncident = await this.incidentRepository.save(newIncident);
@@ -90,21 +89,21 @@ export class IncidentsService {
   /**
    * Analisa uma narrativa e retorna uma lista de protocolos sugeridos.
    */
-  async analyzeNarrative(narrative: string) {
+  async analyzeNarrative(narrative: string): Promise<ScoredProtocol[]> {
     // 1. Limpa e extrai palavras-chave da narrativa do usuário
     const narrativeKeywords = this.cleanAndTokenize(narrative);
     if (narrativeKeywords.length === 0) {
       return [];
     }
 
-    // 2. Busca TODOS os protocolos no banco (com suas naturezas)
-    const allProtocols = await this.protocolRepository.find({
-      relations: ['incidentNature'], // Crucial: precisamos dos dados da natureza
-      where: { incidentNature: { id: Not(null) } }, // Garante que o protocolo está linkado
-    });
+    // 2. Busca TODOS os protocolos no banco que têm uma natureza associada
+    const allProtocols = await this.protocolRepository
+      .createQueryBuilder('protocol')
+      .innerJoinAndSelect('protocol.incidentNature', 'incidentNature')
+      .getMany();
 
     // 3. Calcula a pontuação de cada protocolo
-    const scoredProtocols = [];
+    const scoredProtocols: ScoredProtocol[] = [];
     for (const protocol of allProtocols) {
       let score = 0;
       for (const keyword of protocol.keywords) {
@@ -140,9 +139,32 @@ export class IncidentsService {
     const normalized = this.normalize(text);
     // Remove palavras comuns (stopwords)
     const stopwords = new Set([
-      'o', 'a', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na',
-      'nos', 'nas', 'um', 'uma', 'uns', 'umas', 'e', 'para', 'com', 'que',
-      'está', 'esta', 'meu', 'minha',
+      'o',
+      'a',
+      'os',
+      'as',
+      'de',
+      'do',
+      'da',
+      'dos',
+      'das',
+      'em',
+      'no',
+      'na',
+      'nos',
+      'nas',
+      'um',
+      'uma',
+      'uns',
+      'umas',
+      'e',
+      'para',
+      'com',
+      'que',
+      'está',
+      'esta',
+      'meu',
+      'minha',
     ]);
 
     return normalized

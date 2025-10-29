@@ -14,7 +14,7 @@ import { User } from '../users/entities/user.entity'; // Importar!
       IncidentNature,
       Protocol,
       Incident, // Adicionar esta linha!
-      User,     // Adicionar esta linha!
+      User, // Adicionar esta linha!
     ]),
   ],
   controllers: [IncidentNaturesController, TriageController],

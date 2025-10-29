@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { ResourceType } from '../../common/enums/resource-type.enum';
 import { ResourceStatus } from '../../common/enums/resource-status.enum';
-import { Point } from 'geojson';
+import type { Point } from 'geojson';
 
 @Entity('resources')
 export class Resource {
@@ -22,7 +22,11 @@ export class Resource {
   @Column({ type: 'enum', enum: ResourceType })
   type: ResourceType;
 
-  @Column({ type: 'enum', enum: ResourceStatus, default: ResourceStatus.AVAILABLE })
+  @Column({
+    type: 'enum',
+    enum: ResourceStatus,
+    default: ResourceStatus.AVAILABLE,
+  })
   status: ResourceStatus;
 
   // Localização atual da viatura (essencial para o mapa do despachante)

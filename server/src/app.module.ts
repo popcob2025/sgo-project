@@ -28,11 +28,12 @@ import { AnalyticsModule } from './analytics/analytics.module';
     TypeOrmModule.forRoot({
       // ... (sua configuração de banco)
       type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT, 10),
-      username: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
+      // CORREÇÃO 1: Adicionados valores padrão (fallbacks)
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      username: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'admin',
+      database: process.env.DB_NAME || 'sgo_db',
       autoLoadEntities: true,
       synchronize: true,
     }),

@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 import { Resource } from './entities/resource.entity';
 import { CreateResourceDto } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
-import { Point } from 'geojson';
 
 @Injectable()
 export class ResourcesService {
@@ -19,18 +18,16 @@ export class ResourcesService {
   create(createDto: CreateResourceDto): Promise<Resource> {
     const { latitude, longitude, ...rest } = createDto;
 
-    let coordinates: Point = null;
+    const resourceData: DeepPartial<Resource> = { ...rest };
+
     if (latitude && longitude) {
-      coordinates = {
+      resourceData.currentLocation = {
         type: 'Point',
         coordinates: [longitude, latitude],
       };
     }
 
-    const resource = this.resourceRepository.create({
-      ...rest,
-      currentLocation: coordinates,
-    });
+    const resource = this.resourceRepository.create(resourceData);
 
     return this.resourceRepository.save(resource);
   }

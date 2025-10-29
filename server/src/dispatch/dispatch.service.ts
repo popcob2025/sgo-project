@@ -4,36 +4,38 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-// ... (outros imports de typeorm)
+import { DataSource, In, Repository } from 'typeorm';
 import { AssignResourcesDto } from './dto/assign-resources.dto';
 import { DispatchAssignment } from './entities/dispatch-assignment.entity';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter'; // Importar!
-import { DispatchGateway } from './dispatch.gateway'; // Importar!
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { DispatchGateway } from './dispatch.gateway';
+import { Incident } from '../incidents/entities/incident.entity';
+import { Resource } from '../resources/entities/resource.entity';
+import { IncidentStatus } from '../common/enums/incident-status.enum';
+import { ResourceStatus } from '../common/enums/resource-status.enum';
 
 @Injectable()
 export class DispatchService {
   constructor(
     @InjectRepository(Incident)
     private incidentRepository: Repository<Incident>,
-    // ... (outros repositórios)
+    @InjectRepository(Resource)
+    private resourceRepository: Repository<Resource>,
     @InjectRepository(DispatchAssignment)
     private assignmentRepository: Repository<DispatchAssignment>,
-    
     private dataSource: DataSource,
-
     // Injetar o Gateway e o EventEmitter
     private dispatchGateway: DispatchGateway,
     private eventEmitter: EventEmitter2,
   ) {}
 
   // --- OUVINTE DE EVENTO ---
-  
+
   @OnEvent('incident.created')
   handleIncidentCreation(payload: Incident) {
     // O IncidentsService disparou. Agora, o DispatchGateway notifica.
     this.dispatchGateway.notifyNewIncident(payload);
   }
-
 
   // --- MÉTODOS DO SERVIÇO ---
 
@@ -41,7 +43,7 @@ export class DispatchService {
     // ... (código da Fase 11, sem alterações)
     return this.incidentRepository.find({
       where: { status: IncidentStatus.AWAITING_DISPATCH },
-      order: { priority: 'DESC', createdAt: 'ASC' }, 
+      order: { priority: 'DESC', createdAt: 'ASC' },
       relations: ['protocol', 'triageOperator'],
     });
   }
@@ -60,10 +62,14 @@ export class DispatchService {
       const incident = await manager.findOne(Incident, {
         where: { id: dto.incidentId },
       });
-      if (!incident) throw new NotFoundException('Ocorrência não encontrada.');
+      if (!incident) {
+        throw new NotFoundException('Ocorrência não encontrada.');
+      }
       // ... (validações da ocorrência)
       if (incident.status !== IncidentStatus.AWAITING_DISPATCH) {
-        throw new BadRequestException('Esta ocorrência não está aguardando despacho.');
+        throw new BadRequestException(
+          'Esta ocorrência não está aguardando despacho.',
+        );
       }
 
       // 2. Encontra os recursos
@@ -71,17 +77,21 @@ export class DispatchService {
         where: { id: In(dto.resourceIds) },
       });
       if (resources.length !== dto.resourceIds.length) {
-        throw new NotFoundException('Um ou mais recursos não foram encontrados.');
+        throw new NotFoundException(
+          'Um ou mais recursos não foram encontrados.',
+        );
       }
 
       // 3. Valida e atualiza os recursos
       const newAssignments: DispatchAssignment[] = [];
       for (const resource of resources) {
         if (resource.status !== ResourceStatus.AVAILABLE) {
-          throw new BadRequestException(`Recurso ${resource.name} não está disponível.`);
+          throw new BadRequestException(
+            `Recurso ${resource.name} não está disponível.`,
+          );
         }
         resource.status = ResourceStatus.EN_ROUTE;
-        
+
         const assignment = manager.create(DispatchAssignment, {
           incident: incident,
           resource: resource,
